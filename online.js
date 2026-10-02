@@ -2,7 +2,7 @@
    Fill in the two values below (Supabase > Project Settings > API). The anon key is meant to be public:
    Row Level Security in supabase.sql is what protects the data. */
 (() => {
-  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+  const SUPABASE_URL = 'https://nswobppwfcxzrjnkfwsd.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_I5YuxD3JK8blBdv_pPjU1g_H1CRFUVx';
 
   const $a = id => document.getElementById(id);
