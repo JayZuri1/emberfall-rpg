@@ -1,0 +1,17 @@
+{
+  "name": "emberfall",
+  "version": "1.0.0",
+  "description": "Emberfall RPG",
+  "author": "JayZuri1",
+  "main": "main.js",
+  "scripts": { "start": "electron .", "dist": "electron-builder --win portable nsis --publish never" },
+  "build": {
+    "appId": "com.jayzuri.emberfall",
+    "productName": "Emberfall",
+    "files": ["main.js", "icon.ico"],
+    "directories": { "output": "dist" },
+    "win": { "icon": "icon.ico", "target": ["portable", "nsis"] },
+    "nsis": { "oneClick": true, "perMachine": false }
+  },
+  "devDependencies": { "electron": "^31.7.7", "electron-builder": "^24.13.3" }
+}
