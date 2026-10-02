@@ -1,0 +1,7 @@
+{
+  "appId": "com.jayzuri.emberfall",
+  "appName": "Emberfall",
+  "webDir": "www",
+  "server": { "url": "https://jayzuri1.github.io/emberfall-rpg/", "cleartext": false },
+  "backgroundColor": "#050608"
+}
