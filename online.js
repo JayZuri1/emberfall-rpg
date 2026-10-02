@@ -3,7 +3,7 @@
    Row Level Security in supabase.sql is what protects the data. */
 (() => {
   const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-  const SUPABASE_KEY = 'YOUR-ANON-PUBLIC-KEY';
+  const SUPABASE_KEY = 'sb_publishable_I5YuxD3JK8blBdv_pPjU1g_H1CRFUVx';
 
   const $a = id => document.getElementById(id);
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
