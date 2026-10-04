@@ -249,7 +249,7 @@
   }, 400);
 
   /* ranged attacks, class skills, stun, projectiles */
-  const PR = [];
+  const PR = window.PRJ = [];                                           // exposed so the 3D renderer can draw projectiles
   function aim(range) {                                               // aim assist: nearest enemy (or arena peer) within range, else facing
     let dx = P.fx, dy = P.fy, best = range, found = null;
     const c = E.map(e => [e.x, e.y]); if (arena && MP()) for (const p of MP().peers.values()) if (p.tx >= SAFE && performance.now() - p.seen < 3000) c.push([p.tx, p.ty]);
