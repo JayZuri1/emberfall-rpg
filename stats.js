@@ -8,8 +8,14 @@
     archer: { n: 'Archer', job: 'Archer', icon: '🏹', hp: .9, sp: 1.2, dm: 1, lh: 0, ls: 1, cost: [8, 18], skills: ['Double Strafe', 'Arrow Rain'], lab: [['🏹', 'Strafe'], ['🌧', 'Rain']], role: 'Ranged damage dealer', wp: 'Bows', perk: 'Fast arrows with aim assist, +8% dodge, +5% crit. Lower HP.' },
     tank: { n: 'Tank', job: 'Knight', icon: '🛡', hp: 1.35, sp: .8, dm: .85, lh: 6, ls: 0, cost: [8, 15], skills: ['Shield Bash (stun)', 'Fortify (-65% damage, 5s)'], lab: [['🛡', 'S.Bash'], ['🏰', 'Fortify']], role: 'Frontline defender', wp: 'Maces and Hammers', perk: '+35% HP, -15% damage taken. Lower damage.' },
     mage: { n: 'Mage', job: 'Mage', icon: '🔮', hp: .8, sp: 1.8, dm: 1.1, lh: 0, ls: 3, cost: [10, 20], skills: ['Fire Bolt', 'Frost Nova (freeze)'], lab: [['🔥', 'Firebolt'], ['❄', 'Nova']], role: 'Ranged spell caster', wp: 'Staves', perk: '+80% SP and SP regen, strong spells. Fragile.' } };
-  const cls = () => P.cls || 'sword', dmx = () => CLS[cls()].dm, tkf = () => (P.cls === 'tank' ? .85 : 1) * (P.fort > 0 ? .35 : 1);
-  const dodge = () => Math.min(.25, .01 * P.st.dex + (P.cls === 'archer' ? .08 : 0));   // admin test toggles
+  Object.assign(CLS.sword, { hp: .9, dm: .8, cost: [12, 22], perk: 'Balanced, but no longer overpowered. Skills cost more.' });
+  Object.assign(CLS.archer, { hp: .85, sp: 1.1, dm: .75, ls: 0, cost: [12, 27], perk: 'Ranged with aim assist, +4% dodge, +2% crit. Fragile.' });
+  Object.assign(CLS.tank, { hp: 1.15, sp: .8, dm: .65, lh: 3, cost: [12, 22], skills: ['Shield Bash (stun)', 'Fortify (-45% damage, 4s)'], perk: '+15% HP, -8% damage taken. Low damage.' });
+  Object.assign(CLS.mage, { hp: .7, sp: 1.4, dm: .85, ls: 2, cost: [15, 30], perk: '+40% SP, slow SP regen, strong but costly spells. Very fragile.' });
+  const PN = .7, INC = 1.35; let dmgScale = 1;                       // PN: global player damage; INC: global damage taken
+  const OLDM = { sword: [1, 1], archer: [.9, 1.2], tank: [1.35, .8], mage: [.8, 1.8] };
+  const cls = () => P.cls || 'sword', dmx = () => CLS[cls()].dm, tkf = () => (P.cls === 'tank' ? .92 : 1) * (P.fort > 0 ? .55 : 1) * INC;
+  const dodge = () => Math.min(.25, .01 * P.st.dex + (P.cls === 'archer' ? .04 : 0));   // admin test toggles
   const ensure = () => {
     if (!P) return;
     P.st = P.st || { str: 0, dex: 0, vit: 0 }; P.st.sp = P.st.sp || 0; P.st.luk = P.st.luk || 0;
@@ -18,9 +24,9 @@
   };
 
   /* ---- stat effects ---- */
-  const base = dmg, calc = () => { ensure(); return Math.max(1, Math.floor(base() * dmx() * (1 + .04 * P.st.str) + 1.5 * P.st.str)); };
-  dmg = () => { let d = oneHit ? 99999 : calc(); if (Math.random() < .01 * (P.st.dex + P.st.luk) + (P.cls === 'archer' ? .05 : 0)) { d = Math.floor(d * 1.8); pop('CRIT!', P.x, P.y - 54, '#ffd36a'); } return d; };
-  const atk0 = attack; window.attack = () => { ensure(); const c = cls(); if (c == 'archer' || c == 'mage') return shoot(c); const c0 = P.cd; atk0(); if (P.cd > c0) { P.cd *= (c == 'tank' ? 1.15 : 1) / (1 + .03 * P.st.dex); pvpStrike(58, 1, true); } };
+  const base = dmg, calc = () => { ensure(); return Math.max(1, Math.floor(base() * dmx() * PN * dmgScale * (1 + .04 * P.st.str) + 1.5 * P.st.str)); };
+  dmg = () => { let d = oneHit ? 99999 : calc(); if (Math.random() < .01 * (P.st.dex + P.st.luk) + (P.cls === 'archer' ? .02 : 0)) { d = Math.floor(d * 1.8); pop('CRIT!', P.x, P.y - 54, '#ffd36a'); } return d; };
+  const atk0 = attack; window.attack = () => { ensure(); const c = cls(); if (c == 'archer' || c == 'mage') return shoot(c); const c0 = P.cd; atk0(); if (P.cd > c0) { P.cd *= (c == 'tank' ? 1.4 : 1.25) / (1 + .03 * P.st.dex); pvpStrike(58, 1, true); } };
   const REC = [1, 7, 14, 21, 28], MUL = [2.6, 3.4, 4.4, 5.6, 7], mit = a => a / (a + 50);   // recommended level per area, base damage multiplier per area
   const hurt0 = hurt;
   window.hurt = d => {
@@ -178,7 +184,15 @@
     const r = Math.max(1, Math.round(d * tkf() * (1 - mit(ARM[P.ai].a)))); P.hp -= r; P.inv = .35; sh = 6; pop('-' + r, P.x, P.y - 40, '#f55'); burst(P.x, P.y - 10, '#e44', 8); S.hurt();
     if (P.hp <= 0) { P.pd = (P.pd || 0) + 1; MP().send('pvp', { t: 'kill', by: m.from, vn: MP().name() }); P.hp = P.mhp; P.sp = P.msp; P.x = 90; P.y = A.h / 2; P.inv = 2.5; say('Defeated by ' + String(m.name).slice(0, 16) + '. Back to the lobby.'); }
   };
-  const sk0 = skill; window.skill = n => { if (cls() != 'sword') return classSkill(cls(), n); const s0 = P.sp; sk0(n); if (P.sp < s0) pvpStrike(n == 1 ? 64 : 100, n == 1 ? 2.5 : 1.8, n == 1); };
+  const sk0 = skill;
+  window.skill = n => {
+    if (cls() != 'sword') return classSkill(cls(), n);
+    const orig = n == 1 ? 8 : 15, need = CLS.sword.cost[n - 1];
+    if (!(over || ui || P.cd > 0) && P.job != 'Novice' && P.sp < need) { say('Not enough SP'); return; }
+    const s0 = P.sp; dmgScale = .65; sk0(n);
+    if (P.sp < s0) { P.sp = Math.max(0, P.sp - (need - orig)); P.cd = Math.max(P.cd, 1.1); pvpStrike(n == 1 ? 64 : 100, n == 1 ? 2.5 : 1.8, n == 1); }
+    dmgScale = 1;
+  };
 
 
   /* ---- CLASSES: Swordsman / Archer / Tank / Mage (chosen once, permanent) ---- */
@@ -193,8 +207,9 @@
     for (let i = 0; i < SW; i++) { const src = WEAP[i], base = i < 5; if (base) CW[c].base.push(WEAP.length);
       WEAP.push({ n: WN[c][base ? 0 : 1][base ? i : i - 5], d: Math.round(src.d * WM[c]), p: src.p, c: src.c, lv: src.lv, area: src.area, cls: c }); }
   });
+  WEAP.forEach(w => { w.d = Math.round(w.d * .8); });                  // all weapons weaker
   function setClass(c) {
-    const m = CLS[c]; P.cls = c; P.mhp = Math.round(P.mhp * m.hp); P.msp = Math.round(P.msp * m.sp); P.hp = P.mhp; P.sp = P.msp;
+    const m = CLS[c]; P.cls = c; P.cv = 2; P.mhp = Math.round(P.mhp * m.hp); P.msp = Math.round(P.msp * m.sp); P.hp = P.mhp; P.sp = P.msp;
     const w = CW[c].base[0]; P.ow[w] = 1; P.wi = w; if (P.job != 'Novice') P.job = m.job;
     say('You are now a ' + m.n + '!');
   }
@@ -227,6 +242,7 @@
     if (!P) return;
     const need = $('auth').hidden && !P.cls;
     if (need) { pk.style.display = 'grid'; ui = true; } else if (pk.style.display != 'none') pk.style.display = 'none';
+    if (P.cls && P.cv !== 2) { const o = OLDM[P.cls], n = CLS[P.cls]; P.mhp = Math.max(20, Math.round(P.mhp * n.hp / o[0])); P.msp = Math.max(10, Math.round(P.msp * n.sp / o[1])); P.hp = Math.min(P.hp, P.mhp); P.sp = Math.min(P.sp, P.msp); P.cv = 2; }   // one-time nerf for earlier picks
     const m = CLS[cls()];                                              // skill button labels follow the class
     [['bsh', 0], ['bmb', 1]].forEach(([id, i]) => { const b = $(id), sp = b.querySelector('span'), sm = b.querySelector('small'); if (sp.textContent != m.lab[i][0]) { sp.textContent = m.lab[i][0]; sm.textContent = m.lab[i][1]; } });
     const h = document.querySelector('.controls-help span:nth-child(4)'); if (h && !h.dataset.c) { h.dataset.c = 1; h.innerHTML = '<kbd>1</kbd> ' + m.lab[0][1] + ' &nbsp; <kbd>2</kbd> ' + m.lab[1][1]; }
@@ -242,7 +258,7 @@
   }
   function shoot(c) {
     if (over || ui || P.cd > 0) return;
-    P.cd = (c == 'mage' ? .55 : .32) / (1 + .03 * P.st.dex); P.sw = .18; S.swing();
+    P.cd = (c == 'mage' ? .85 : .5) / (1 + .03 * P.st.dex); P.sw = .18; S.swing();
     const [dx, dy] = aim(300), sp = c == 'mage' ? 330 : 470;
     PR.push({ k: c == 'mage' ? 'bolt' : 'arrow', x: P.x, y: P.y - 14, vx: dx * sp, vy: dy * sp, l: .75, M: 1, col: c == 'mage' ? '#8bf' : '#ffe9a8', kb: 10, sp: c == 'mage' ? 36 : 0 });
     pvpStrike(300, 1, true, { beam: 1, dx, dy });
@@ -257,22 +273,22 @@
     if (over || ui || P.cd > 0) return;
     if (P.job == 'Novice') { say('Reach Lv 5 to unlock your class skills'); return; }
     const cost = CLS[c].cost[n - 1]; if (P.sp < cost) { say('Not enough SP'); return; }
-    P.sp -= cost; P.cd = .5 / (1 + .03 * P.st.dex); P.sw = .25; S.swing();
+    P.sp -= cost; P.cd = 1.2 / (1 + .03 * P.st.dex); P.sw = .25; S.swing();
     const dist = e => Math.hypot(e.x - P.x, e.y - P.y), front = e => (e.x - P.x) * P.fx + (e.y - P.y) * P.fy >= -8;
     if (c == 'archer') {
-      if (n == 1) { const [dx, dy] = aim(320); for (let k = 0; k < 2; k++) PR.push({ k: 'arrow', x: P.x - dx * k * 16, y: P.y - 14 - dy * k * 16, vx: dx * 520, vy: dy * 520, l: .7, M: 1.3, col: '#fd5', kb: 14 }); pvpStrike(320, 2.2, true, { beam: 1, dx, dy }); }
+      if (n == 1) { const [dx, dy] = aim(320); for (let k = 0; k < 2; k++) PR.push({ k: 'arrow', x: P.x - dx * k * 16, y: P.y - 14 - dy * k * 16, vx: dx * 520, vy: dy * 520, l: .7, M: .9, col: '#fd5', kb: 14 }); pvpStrike(320, 1.5, true, { beam: 1, dx, dy }); }
       else { const [dx, dy, f] = aim(260), cx = P.x + dx * (f || 140), cy = P.y + dy * (f || 140);
         for (let i = 0; i < 28; i++) Q.push({ x: cx + rnd(-85, 85), y: cy + rnd(-85, 85) - 50, vx: 0, vy: 260, l: .3, col: '#ffe08a' });
-        for (const e of [...E]) if (Math.hypot(e.x - cx, e.y - cy) < 85 + e.r) hitMob(e, { M: 1.6, col: '#fd5', kb: 8 });
-        pvpStrike(85, 1.6, false, { ox: cx, oy: cy }); }
+        for (const e of [...E]) if (Math.hypot(e.x - cx, e.y - cy) < 85 + e.r) hitMob(e, { M: 1.1, col: '#fd5', kb: 8 });
+        pvpStrike(85, 1.1, false, { ox: cx, oy: cy }); }
     } else if (c == 'tank') {
-      if (n == 1) { const t = [...E].filter(e => dist(e) < 64 + e.r && front(e)).sort((a, b) => dist(a) - dist(b))[0]; if (t) hitMob(t, { M: 1.6, st: 1.2, kb: 40, col: '#9df' }); pvpStrike(64, 1.6, true); }
-      else { P.fort = 5; P.hp = Math.min(P.mhp, P.hp + Math.round(P.mhp * .1)); say('Fortify! -65% damage taken for 5s'); burst(P.x, P.y - 10, '#6cf', 20); }
+      if (n == 1) { const t = [...E].filter(e => dist(e) < 64 + e.r && front(e)).sort((a, b) => dist(a) - dist(b))[0]; if (t) hitMob(t, { M: 1.1, st: .8, kb: 40, col: '#9df' }); pvpStrike(64, 1.1, true); }
+      else { P.fort = 4; P.hp = Math.min(P.mhp, P.hp + Math.round(P.mhp * .05)); say('Fortify! -45% damage taken for 4s'); burst(P.x, P.y - 10, '#6cf', 20); }
     } else if (c == 'mage') {
-      if (n == 1) { const [dx, dy] = aim(340); PR.push({ k: 'bolt', x: P.x, y: P.y - 14, vx: dx * 380, vy: dy * 380, l: .9, M: 2.4, col: '#f84', kb: 25, sp: 48 }); pvpStrike(340, 2.4, true, { beam: 1, dx, dy }); S.fire(); }
+      if (n == 1) { const [dx, dy] = aim(340); PR.push({ k: 'bolt', x: P.x, y: P.y - 14, vx: dx * 380, vy: dy * 380, l: .9, M: 1.6, col: '#f84', kb: 25, sp: 36 }); pvpStrike(340, 1.6, true, { beam: 1, dx, dy }); S.fire(); }
       else { for (let i = 0; i < 28; i++) { const a = i / 28 * 6.28; Q.push({ x: P.x + Math.cos(a) * 20, y: P.y - 10 + Math.sin(a) * 12, vx: Math.cos(a) * 150, vy: Math.sin(a) * 90, l: .5, col: '#8df' }); }
-        for (const e of [...E]) if (dist(e) < 120 + e.r) hitMob(e, { M: 1.5, st: 1.5, kb: 30, col: '#8df' });
-        pvpStrike(120, 1.5, false); }
+        for (const e of [...E]) if (dist(e) < 120 + e.r) hitMob(e, { M: 1.0, st: 1.0, kb: 30, col: '#8df' });
+        pvpStrike(120, 1.0, false); }
     }
   }
   const upd0 = update;
@@ -280,10 +296,10 @@
     for (const e of E) if (e.stun > 0) { if (!e.o) e.o = [e.sp, e.d]; e.sp = 0; e.d = 0; e.stun -= dt; if (e.dragon) e.bt += dt; if (e.stun <= 0) { e.sp = e.o[0]; e.d = e.o[1]; e.o = null; } }
     upd0(dt);
     if (P.fort > 0) P.fort -= dt;
-    if (P.cls == 'mage' && P.sp < P.msp && !over) P.sp = Math.min(P.msp, P.sp + 1.2 * dt);
+    if (P.cls == 'mage' && P.sp < P.msp && !over) P.sp = Math.min(P.msp, P.sp + .5 * dt);
     for (let i = PR.length - 1; i >= 0; i--) {
       const p = PR[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.l -= dt; let dead = p.l <= 0 || p.x < 0 || p.y < 0 || p.x > A.w || p.y > A.h;
-      if (!dead) for (const e of E) if (Math.hypot(e.x - p.x, e.y - p.y) < e.r + 10) { hitMob(e, p); if (p.sp) for (const o of [...E]) if (o !== e && Math.hypot(o.x - p.x, o.y - p.y) < p.sp) hitMob(o, p, p.M * .5); dead = true; break; }
+      if (!dead) for (const e of E) if (Math.hypot(e.x - p.x, e.y - p.y) < e.r + 10) { hitMob(e, p); if (p.sp) for (const o of [...E]) if (o !== e && Math.hypot(o.x - p.x, o.y - p.y) < p.sp) hitMob(o, p, p.M * .35); dead = true; break; }
       if (dead) PR.splice(i, 1);
     }
   };
